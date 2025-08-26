@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollama Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+    }
+    #chatbox {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #messages {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .message {
+      margin: 10px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .user {
+      text-align: right;
+      margin-left: auto;
+      background: #d0e7ff;
+      color: #003366;
+    }
+    .bot {
+      text-align: left;
+      margin-right: auto;
+      background: #e6ffe6;
+      color: #004d00;
+    }
+    #input-area {
+      display: flex;
+      margin-top: 20px;
+    }
+    #message {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      margin-left: 10px;
+      padding: 10px 15px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    /* Typing cursor animation */
+    .cursor {
+      display: inline-block;
+      width: 6px;
+      background-color: black;
+      animation: blink 0.8s steps(1) infinite;
+    }
+    @keyframes blink {
+      50% { background-color: transparent; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chatbox">
+    <h2>🤖 Locall Chatbot</h2>
+    <div id="messages"></div>
+    <div id="input-area">
+      <input type="text" id="message" placeholder="Type your message..." onkeydown="if(event.key==='Enter'){sendMessage();}" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+  async function sendMessage() {
+    const input = document.getElementById("message");
+    const text = input.value.trim();
+    if (!text) return;
+
+    const messages = document.getElementById("messages");
+    messages.innerHTML += `<div class="message user">You: ${text}</div>`;
+
+    input.value = "";
+
+    const botDiv = document.createElement("div");
+    botDiv.className = "message bot";
+    botDiv.innerHTML = "Bot: <span id='typing-indicator'>⏳ typing...</span>";
+    messages.appendChild(botDiv);
+
+    try {
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let botReply = "";
+
+      // Replace placeholder when streaming starts
+      botDiv.innerHTML = "Bot: ";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        for (let char of chunk) {
+          botReply += char;
+          botDiv.innerHTML = "Bot: " + botReply + "<span class='cursor'>|</span>";
+          messages.scrollTop = messages.scrollHeight;
+          await new Promise(r => setTimeout(r, 20)); // typing speed
+        }
+      }
+
+      botDiv.innerHTML = "Bot: " + botReply; 
+    } catch (err) {
+      botDiv.innerHTML = "Bot: ⚠️ Error connecting to server.";
+    }
+  }
+  </script>
+</body>
+</html>
