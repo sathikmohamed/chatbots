@@ -6,7 +6,7 @@ A unified repository containing multiple chatbot implementations: RAG-based, loc
 📂 Repository Structure
 multi-chatbots/
 │
-├─ rag_chatbot/             # Retrieval-Augmented Generation chatbot
+├─ gemini_apikey_chatbot/             # Retrieval-Augmented Generation chatbot
 │   ├─ main.py
 │   ├─ requirements.txt
 │   └─ README.md
