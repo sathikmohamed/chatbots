@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Chatbot</title>
+  <style>
+    /* Page background */
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #6dd5fa, #2980b9);
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Chat container */
+    #chatbox {
+      width: 100%;
+      max-width: 600px;
+      height: 80vh;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    #chatbox h2 {
+      margin: 0;
+      padding: 15px;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      font-size: 1.3rem;
+      border-radius: 20px 20px 0 0;
+    }
+
+    /* Messages area */
+    #messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #f9f9f9;
+    }
+
+    .message {
+      margin: 8px 0;
+      padding: 10px 14px;
+      border-radius: 15px;
+      max-width: 75%;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    .user {
+      margin-left: auto;
+      background: #007bff;
+      color: #fff;
+      text-align: right;
+      border-bottom-right-radius: 5px;
+    }
+
+    .bot {
+      margin-right: auto;
+      background: #e5e5ea;
+      color: #000;
+      text-align: left;
+      border-bottom-left-radius: 5px;
+    }
+
+    /* Input area */
+    #input-area {
+      display: flex;
+      padding: 12px;
+      background: #fff;
+      border-top: 1px solid #ddd;
+    }
+
+    #message {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 25px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #message:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 12px 18px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    /* Scrollbar style */
+    #messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    #messages::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chatbox">
+    <h2>🤖 Gemini Chatbot</h2>
+    <div id="messages"></div>
+    <div id="input-area">
+      <input type="text" id="message" placeholder="Type your message..." onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("message");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const messages = document.getElementById("messages");
+      messages.innerHTML += `<div class="message user">${text}</div>`;
+
+      input.value = "";
+
+      // Auto-scroll down
+      messages.scrollTop = messages.scrollHeight;
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await response.json();
+        messages.innerHTML += `<div class="message bot">${data.bot || data.error}</div>`;
+        messages.scrollTop = messages.scrollHeight;
+      } catch (err) {
+        messages.innerHTML += `<div class="message bot">⚠️ Error connecting to server.</div>`;
+        messages.scrollTop = messages.scrollHeight;
+      }
+    }
+  </script>
+</body>
+</html>
