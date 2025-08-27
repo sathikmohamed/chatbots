@@ -22,7 +22,16 @@ multi-chatbots/
 │   ├─ main.py
 │   ├─ requirements.txt
 │   └─ README.md
-│
+|
+│__ voice_based_chatbot         # Chatbot using voice and text based
+|   templates/
+    ├─ index.html
+│   ├─ app.py
+│   ├─ requirements.txt
+│   └─ README.md
+|
+|
+|
 |
 │
 └─ README.md                # This file

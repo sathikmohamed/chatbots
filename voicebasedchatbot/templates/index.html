@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice/Text Chat</title>
+<style>
+:root {
+    --bg-color: #f0f2f5;
+    --chat-bg: #fff;
+    --user-bg: linear-gradient(120deg, #cce5ff, #b8daff);
+    --bot-bg: linear-gradient(120deg, #d4edda, #c3e6cb);
+    --user-color: #004085;
+    --bot-color: #155724;
+    --typing-color: gray;
+    --gradient-start: #6b48ff;
+    --gradient-end: #ff4e83;
+}
+body.dark {
+    --bg-color: #1e1e1e;
+    --chat-bg: #2b2b2b;
+    --user-bg: linear-gradient(120deg, #3a3dff, #6a8cff);
+    --bot-bg: linear-gradient(120deg, #28a745, #155724);
+    --user-color: #cce5ff;
+    --bot-color: #d4edda;
+    --typing-color: #ccc;
+    --gradient-start: #1a1a2e;
+    --gradient-end: #16213e;
+}
+body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: auto;
+    padding: 20px;
+    background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+    background-size: 200% 200%;
+    animation: gradientShift 15s ease infinite;
+    transition: background 0.3s;
+}
+@keyframes gradientShift {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+h1 {
+    text-align: center;
+    color: #333;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+#chat {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    height: 500px;
+    overflow-y: auto;
+    background: var(--chat-bg);
+    display: flex;
+    flex-direction: column;
+    transition: background 0.3s;
+    scroll-behavior: smooth;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.message {
+    margin: 10px 0;
+    padding: 12px 18px;
+    border-radius: 20px;
+    max-width: 75%;
+    position: relative;
+    word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: fadeInScale 0.5s ease-out;
+    white-space: normal;
+    transition: transform 0.2s;
+}
+.message:hover {
+    transform: scale(1.02);
+}
+.user { background: var(--user-bg); align-self: flex-end; color: var(--user-color); }
+.bot { background: var(--bot-bg); align-self: flex-start; color: var(--bot-color); }
+.user::after { content: '👤'; position: absolute; top: 5px; right: -25px; font-size: 18px; animation: userBlink 2s infinite; }
+.bot::after { content: '🤖'; position: absolute; top: 5px; left: -25px; font-size: 18px; animation: botBlink 2s infinite; }
+@keyframes userBlink { 50% { opacity: 0.7; } }
+@keyframes botBlink { 50% { opacity: 0.7; } }
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.95) translateY(5px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+#inputArea {
+    display: flex;
+    margin-top: 10px;
+    gap: 5px;
+    align-items: center;
+}
+input[type="text"] {
+    flex: 1;
+    padding: 12px 15px;
+    border-radius: 25px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+button {
+    padding: 10px 15px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+button:hover { transform: scale(1.1); }
+#sendBtn { background: #007bff; color: #fff; }
+#sendBtn:hover { background: #0056b3; }
+#recordBtn { background: #28a745; color: #fff; }
+#recordBtn.recording { background: #dc3545; }
+#recordBtn:hover { opacity: 0.9; }
+#themeToggle {
+    background: #6c757d;
+    color: #fff;
+    margin-left: 5px;
+    font-size: 14px;
+    border-radius: 5px;
+    padding: 5px 10px;
+}
+#recordStatus { font-weight: bold; color: #dc3545; margin-left: 10px; }
+canvas#waveform {
+    width: 100%;
+    height: 60px;
+    background: #eee;
+    border-radius: 5px;
+    margin-top: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.typing {
+    font-style: italic;
+    color: var(--typing-color);
+    margin: 5px 0;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    position: relative;
+}
+.typing-dot {
+    font-size: 18px;
+    animation: pulse 1.5s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.6; }
+}
+.typing::before {
+    content: '';
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(40,167,69,0.2) 0%, rgba(0,0,0,0) 70%);
+    animation: particleWave 2s infinite;
+    z-index: -1;
+}
+@keyframes particleWave {
+    0% { transform: translateX(-50px); }
+    100% { transform: translateX(50px); }
+}
+.read-more { color: #007bff; cursor: pointer; font-size: 13px; display: inline-block; margin-top: 5px; }
+.hidden { display: none; }
+.keyword { background: yellow; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Voice/Text Chat</h1>
+<div id="chat"></div>
+
+<div id="inputArea">
+    <input type="text" id="textInput" placeholder="Type your message..."/>
+    <button id="sendBtn" title="Send Message">✉️</button>
+    <button id="recordBtn" title="Record Voice">🎤</button>
+    <button id="themeToggle">🌙 Toggle Dark</button>
+    <span id="recordStatus"></span>
+</div>
+<canvas id="waveform"></canvas>
+<audio id="notifySound" src="https://freesound.org/data/previews/522/522224_3248244-lq.mp3" preload="auto"></audio>
+
+<script>
+const chatDiv = document.getElementById("chat");
+const textInput = document.getElementById("textInput");
+const sendBtn = document.getElementById("sendBtn");
+const recordBtn = document.getElementById("recordBtn");
+const themeToggle = document.getElementById("themeToggle");
+const recordStatus = document.getElementById("recordStatus");
+const canvas = document.getElementById("waveform");
+const ctx = canvas.getContext("2d");
+const notifySound = document.getElementById("notifySound");
+
+let mediaRecorder, audioChunks = [];
+let botTypingAnimation, typingIndicator;
+let audioContext, analyser, dataArray, bufferLength, source;
+
+// -------------------------
+// Theme toggle
+// -------------------------
+themeToggle.onclick = () => {
+    document.body.classList.toggle("dark");
+    themeToggle.textContent = document.body.classList.contains("dark") ? "☀️ Toggle Light" : "🌙 Toggle Dark";
+};
+
+// -------------------------
+// Append messages
+// -------------------------
+function appendMessage(text, sender) {
+    const div = document.createElement("div");
+    div.className = "message " + sender;
+
+    // Long messages collapse
+    if (text.length > 400) {
+        const shortText = text.slice(0, 400) + "...";
+        div.innerHTML = renderMarkdown(shortText) + `<span class="read-more">Read More</span><div class="hidden full-text">${renderMarkdown(text)}</div>`;
+        div.querySelector(".read-more").onclick = () => {
+            const fullDiv = div.querySelector(".full-text");
+            fullDiv.classList.toggle("hidden");
+            div.querySelector(".read-more").textContent = fullDiv.classList.contains("hidden") ? "Read More" : "Collapse";
+        };
+    } else {
+        div.innerHTML = renderMarkdown(text);
+    }
+
+    chatDiv.appendChild(div);
+    chatDiv.scrollTo({ top: chatDiv.scrollHeight, behavior: 'smooth' });
+    if(sender === "bot") notifySound.play();
+}
+
+// -------------------------
+// Render Markdown + keyword highlights
+// -------------------------
+function renderMarkdown(text) {
+    const keywords = ["Data Science","Python","Machine Learning","AI","Statistics"];
+    keywords.forEach(k => {
+        const regex = new RegExp(k, "gi");
+        text = text.replace(regex, `<span class="keyword">${k}</span>`);
+    });
+
+    let html = text
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/\*(.*?)\*/g, "<i>$1</i>")
+        .replace(/`(.*?)`/g, "<code>$1</code>");
+    return html;
+}
+
+// -------------------------
+// Typing indicator with emoji animation
+// -------------------------
+function showTyping() {
+    typingIndicator = document.createElement("div");
+    typingIndicator.className = "typing";
+    typingIndicator.innerHTML = `🤖 <span class="typing-dot">💬</span><span class="typing-dot">⚡</span><span class="typing-dot">✨</span>`;
+    chatDiv.appendChild(typingIndicator);
+    chatDiv.scrollTo({ top: chatDiv.scrollHeight, behavior: 'smooth' });
+    startBotWaveform();
+}
+function hideTyping() {
+    if(typingIndicator) typingIndicator.remove();
+    stopBotWaveform();
+}
+
+// -------------------------
+// Bot waveform animation
+// -------------------------
+function startBotWaveform() {
+    const length = canvas.width;
+    let step = 0;
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const barCount = 60;
+        const barWidth = length / barCount;
+        for(let i = 0; i < barCount; i++) {
+            const barHeight = Math.abs(Math.sin(step + i / 5)) * canvas.height * 0.8;
+            const hue = (step * 10 + i * 5) % 360;
+            ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.7)`;
+            ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth * 0.7, barHeight);
+            ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.3)`;
+            ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth * 0.7, barHeight * 0.5);
+        }
+        step += 0.1;
+        botTypingAnimation = requestAnimationFrame(draw);
+    }
+    draw();
+}
+function stopBotWaveform() {
+    cancelAnimationFrame(botTypingAnimation);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// -------------------------
+// Text input
+// -------------------------
+sendBtn.onclick = async () => {
+    const text = textInput.value.trim();
+    if(!text) return;
+    appendMessage(text, "user");
+    textInput.value = "";
+    showTyping();
+    const res = await fetch("/chat", {method: "POST", body: new URLSearchParams({text})});
+    const data = await res.json();
+    hideTyping();
+    appendMessage(data.bot_reply || "No reply", "bot");
+};
+
+// -------------------------
+// Voice recording with waveform
+// -------------------------
+recordBtn.onclick = async () => {
+    if(!mediaRecorder) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            stopRecordingWaveform();
+            if(audioChunks.length === 0) return;
+            const blob = new Blob(audioChunks, {type: "audio/webm"});
+            audioChunks = [];
+            const formData = new FormData();
+            formData.append("audio_data", blob, "voice.webm");
+            appendMessage("🎤 [Voice message sent]", "user");
+            showTyping();
+            const res = await fetch("/chat", {method: "POST", body: formData});
+            const data = await res.json();
+            hideTyping();
+            appendMessage(data.user_text || "", "user");
+            appendMessage(data.bot_reply || "No reply", "bot");
+        };
+    }
+
+    if(mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        recordBtn.textContent = "🎤 Record Voice";
+        recordBtn.classList.remove("recording");
+    } else {
+        audioChunks = [];
+        mediaRecorder.start();
+        recordBtn.textContent = "⏹ Stop Recording";
+        recordBtn.classList.add("recording");
+        drawRecordingWaveform();
+    }
+};
+
+// -------------------------
+// Real-time recording waveform
+// -------------------------
+let recordingAnimation;
+function drawRecordingWaveform() {
+    const width = canvas.width;
+    const height = canvas.height;
+    function draw() {
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, width, height);
+        const barWidth = width / bufferLength;
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = dataArray[i] / 2;
+            ctx.fillStyle = `hsl(${i * 2}, 70%, 50%)`;
+            ctx.fillRect(i * barWidth, height - barHeight, barWidth * 0.8, barHeight);
+        }
+        recordingAnimation = requestAnimationFrame(draw);
+    }
+    draw();
+}
+function stopRecordingWaveform() {
+    cancelAnimationFrame(recordingAnimation);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+</script>
+</body>
+</html>

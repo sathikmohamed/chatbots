@@ -72,7 +72,7 @@ or any other local model.
 python main.py
 
 
-Visit http://localhost:5000
+Visit http://localhost:xxxx
  in your browser.
 ```
 Usage
